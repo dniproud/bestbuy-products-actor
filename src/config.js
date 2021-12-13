@@ -1,8 +1,8 @@
 const Apify = require('apify');
 
 /**
- * @param {proxy} proxy Input
- * @returns proxyConfiguration: Apify.createProxyConfiguation()
+ * @param  {Object} proxy
+ * @return {ProxyConfiguration} proxyConfiguration
  */
 exports.proxyConfig = async (proxy) => {
     let proxyConfiguration;

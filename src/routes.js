@@ -3,11 +3,10 @@ const Apify = require('apify');
 const { utils: { log } } = Apify;
 
 /**
- * @param {page} Page Context
+ * @param  {Puppeteer.page} page
  */
 async function pushData(page) {
     const products = await page.evaluate(() => {
-        const items = [];
         const getPrice = (element) => {
             return element ? parseFloat(element.innerText.replace(/[^\d.]/g, '')) : null;
         };
@@ -19,6 +18,7 @@ async function pushData(page) {
             if (j > 0) category.push(crumb.innerText);
         });
 
+        const items = [];
         document.querySelectorAll('.sku-item-list .sku-item').forEach((item) => {
             const itemId = item.getAttribute('data-sku-id');
             const itemName = item.querySelector('.sku-title h4.sku-header').innerText;
@@ -54,28 +54,41 @@ async function pushData(page) {
 
         return items;
     });
-    log.debug('products:', products);
-    Apify.pushData(products);
+    return products;
 }
 
 /**
- * @param {request} Request Context
- * @param {page} Page Context
- * @param {crawler} crawler Context
- * @param {requestQueue} RequestQueue Crawler
+ * @param  {Array} products
+ * @param  {Object} state
  */
-exports.handleList = async ({ request, page, crawler: { requestQueue } }) => {
+function getRemainProductsCnt(products, state) {
+    const { maxProductsCnt, currentProductsCnt } = state.saved;
+    const remaining = Math.min(maxProductsCnt - currentProductsCnt, products.length);
+    state.saved.currentProductsCnt += remaining;
+    return maxProductsCnt > 0 ? remaining : products.length;
+}
+
+/**
+ * @param  {Request} {request
+ * @param  {Page} page
+ * @param  {{requestQueue}}} crawler
+ * @param  {Object} state
+ */
+exports.handleList = async ({ request, page, crawler: { requestQueue } }, state) => {
     log.info('Page opened.', { url: request.url });
-    await pushData(page);
-    const pageUrls = await page.$$eval('.page-item a', (options) => (
-        options.map((option) => option.href)
-    ));
-    log.debug('Length of pages', { pageCount: pageUrls.length });
-    if (pageUrls) {
-        pageUrls.map((url) => {
+    // extract the products data from the current page and store them into the default storage
+    const products = await pushData(page);
+    const remaining = getRemainProductsCnt(products, state);
+    Apify.pushData(products.slice(0, remaining));
+    if (remaining === 0 || remaining < products.length) {
+        log.info('Reached the maximum products.');
+    } else {
+        // get the next url
+        const nextUrl = await page.$eval('a.sku-list-page-next', (option) => option.href);
+        if (nextUrl) {
             requestQueue.addRequest({
-                url,
+                url: nextUrl,
             });
-        });
+        }
     }
 };
