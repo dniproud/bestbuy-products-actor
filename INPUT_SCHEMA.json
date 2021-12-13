@@ -1,0 +1,32 @@
+{
+  "title": "bestbuy.com pricing actor",
+  "description": "This is the pricing actor for bestbuy. com",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Category URL",
+      "type": "array",
+      "description": "A category url of bestbuy.com",
+      "editor": "requestListSources"
+    },
+    "maxProducts": {
+      "title": "Max count of products to be scrapped",
+      "type": "integer",
+      "description": "Max count of products to be scrapped",
+      "editor": "number",
+      "default": 0
+    },
+    "proxy": {
+      "title": "proxy",
+      "type": "object",
+      "description": "proxy",
+      "editor": "proxy"
+    }
+  },
+  "required": [
+    "startUrls",
+    "maxProducts",
+    "zipcode"
+  ]
+}
